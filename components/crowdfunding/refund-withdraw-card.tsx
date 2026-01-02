@@ -56,7 +56,23 @@ export function RefundWithdrawCard({ campaignId, isFounder = false }: RefundWith
 function InvestorSection({ campaignId }: { campaignId: number }) {
   const refund = useRefund(campaignId);
   const claim = useClaimTokens(campaignId);
-  const [tokenAddedToWallet, setTokenAddedToWallet] = useState(false);
+
+  // Check localStorage for token added status
+  const storageKey = `tokenAdded_${campaignId}`;
+  const [tokenAddedToWallet, setTokenAddedToWallet] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(storageKey) === 'true';
+    }
+    return false;
+  });
+
+  // Persist to localStorage when state changes
+  const handleTokenAdded = () => {
+    setTokenAddedToWallet(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, 'true');
+    }
+  };
 
   useEffect(() => {
     refund.checkEligibility();
@@ -162,7 +178,7 @@ function InvestorSection({ campaignId }: { campaignId: number }) {
                       campaign.tokenSymbol
                     );
                     if (success) {
-                      setTokenAddedToWallet(true);
+                      handleTokenAdded();
                       toast.success(`${campaign.tokenSymbol} added to wallet!`);
                     } else {
                       toast.error('Failed to add token to wallet');
@@ -199,7 +215,7 @@ function InvestorSection({ campaignId }: { campaignId: number }) {
                       campaign.tokenSymbol
                     );
                     if (added) {
-                      setTokenAddedToWallet(true);
+                      handleTokenAdded();
                       toast.success(`${campaign.tokenSymbol} added to wallet!`);
                     }
                   } else {
