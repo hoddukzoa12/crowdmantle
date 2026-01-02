@@ -421,6 +421,40 @@ npm run test
 
 ---
 
+## Roadmap
+
+| Phase | Timeline | Features |
+|-------|----------|----------|
+| **Core Enhancement** | Q1 2025 | Mainnet deployment, Stablecoin support (USDT/USDC), Project whitepaper |
+| **Compliance & Trust** | Q2 2025 | KYC integration, Creator verification, Accredited investor tier |
+| **Trading Ecosystem** | Q3-Q4 2025 | Secondary market for tokens, Bybit partnership, xStock listing |
+| **Scale & Expand** | 2026 | Cross-chain support, Mobile app, Platform DAO |
+
+### Revenue Model
+
+| Stream | Description |
+|--------|-------------|
+| Platform Fee | 2% on released funds (currently implemented) |
+| Premium Features | Creator analytics, campaign promotion |
+| KYC Services | Identity verification fees |
+| Trading Fees | Secondary market transaction fees |
+
+---
+
+## Team
+
+| Name | Role | Contact |
+|------|------|---------|
+| **[Your Name]** | Full-stack Developer | [GitHub](https://github.com/hoddukzoa12) |
+
+---
+
+## Compliance Declaration
+
+This project does not involve regulated securities or financial assets. Equity tokens issued are governance tokens for voting purposes only and do not represent ownership or profit-sharing rights in any legal entity. Deployed on Mantle Sepolia Testnet for demonstration purposes.
+
+---
+
 ## License
 
 MIT License
