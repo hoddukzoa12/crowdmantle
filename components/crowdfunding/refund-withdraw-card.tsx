@@ -5,12 +5,12 @@
  * Shows refund, withdrawal, or token claim options based on campaign status
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, CheckCircle, Clock, RefreshCw, Wallet, Coins } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, RefreshCw, Wallet, Coins, Plus } from 'lucide-react';
 import { useRefund, useWithdraw, useClaimTokens } from '@/src/presentation/hooks';
 import { toEther } from 'thirdweb/utils';
 import { toast } from 'sonner';
@@ -18,6 +18,30 @@ import { toast } from 'sonner';
 interface RefundWithdrawCardProps {
   campaignId: number;
   isFounder?: boolean;
+}
+
+// Helper function to add token to wallet
+async function addTokenToWallet(tokenAddress: string, tokenSymbol: string) {
+  try {
+    if (typeof window !== 'undefined' && window.ethereum) {
+      await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: tokenAddress,
+            symbol: tokenSymbol,
+            decimals: 18,
+          },
+        },
+      });
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to add token to wallet:', error);
+    return false;
+  }
 }
 
 export function RefundWithdrawCard({ campaignId, isFounder = false }: RefundWithdrawCardProps) {
@@ -32,6 +56,7 @@ export function RefundWithdrawCard({ campaignId, isFounder = false }: RefundWith
 function InvestorSection({ campaignId }: { campaignId: number }) {
   const refund = useRefund(campaignId);
   const claim = useClaimTokens(campaignId);
+  const [tokenAddedToWallet, setTokenAddedToWallet] = useState(false);
 
   useEffect(() => {
     refund.checkEligibility();
@@ -120,8 +145,34 @@ function InvestorSection({ campaignId }: { campaignId: number }) {
         </CardHeader>
         <CardContent className="space-y-4">
           {claim.hasClaimed ? (
-            <div className="text-sm text-green-700 dark:text-green-300">
-              You have already claimed your {campaign.tokenSymbol} tokens!
+            <div className="space-y-3">
+              <div className="text-sm text-green-700 dark:text-green-300">
+                {tokenAddedToWallet
+                  ? `${campaign.tokenSymbol} tokens are now visible in your wallet!`
+                  : `You have already claimed your ${campaign.tokenSymbol} tokens!`
+                }
+              </div>
+              {!tokenAddedToWallet && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={async () => {
+                    const success = await addTokenToWallet(
+                      campaign.equityToken,
+                      campaign.tokenSymbol
+                    );
+                    if (success) {
+                      setTokenAddedToWallet(true);
+                      toast.success(`${campaign.tokenSymbol} added to wallet!`);
+                    } else {
+                      toast.error('Failed to add token to wallet');
+                    }
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add {campaign.tokenSymbol} to Wallet
+                </Button>
+              )}
             </div>
           ) : claim.canClaim ? (
             <>
@@ -142,6 +193,15 @@ function InvestorSection({ campaignId }: { campaignId: number }) {
                   const success = await claim.claimTokens();
                   if (success) {
                     toast.success('Tokens claimed successfully!');
+                    // Prompt to add token to wallet
+                    const added = await addTokenToWallet(
+                      campaign.equityToken,
+                      campaign.tokenSymbol
+                    );
+                    if (added) {
+                      setTokenAddedToWallet(true);
+                      toast.success(`${campaign.tokenSymbol} added to wallet!`);
+                    }
                   } else {
                     toast.error(claim.error || 'Failed to claim tokens');
                   }
