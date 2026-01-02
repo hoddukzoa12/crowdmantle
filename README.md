@@ -445,7 +445,7 @@ npm run test
 
 | Name | Role | Contact |
 |------|------|---------|
-| **[Your Name]** | Full-stack Developer | [GitHub](https://github.com/hoddukzoa12) |
+| **hoddukzoa** | Full-stack Developer | [GitHub](https://github.com/hoddukzoa12) |
 
 ---
 
