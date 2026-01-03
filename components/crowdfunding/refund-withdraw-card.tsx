@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, CheckCircle, Clock, RefreshCw, Wallet, Coins, Plus } from 'lucide-react';
-import { useRefund, useWithdraw, useClaimTokens } from '@/src/presentation/hooks';
+import { useRefund, useWithdraw, useClaimTokens, useClaimFounderTokens } from '@/src/presentation/hooks';
 import { toEther } from 'thirdweb/utils';
 import { toast } from 'sonner';
 
@@ -311,9 +311,27 @@ function InvestorSection({ campaignId }: { campaignId: number }) {
 
 function FounderWithdrawSection({ campaignId }: { campaignId: number }) {
   const withdraw = useWithdraw(campaignId);
+  const founderClaim = useClaimFounderTokens(campaignId);
+
+  // Check localStorage for founder token added status
+  const founderTokenStorageKey = `founderTokenAdded_${campaignId}`;
+  const [founderTokenAddedToWallet, setFounderTokenAddedToWallet] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(founderTokenStorageKey) === 'true';
+    }
+    return false;
+  });
+
+  const handleFounderTokenAdded = () => {
+    setFounderTokenAddedToWallet(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(founderTokenStorageKey, 'true');
+    }
+  };
 
   useEffect(() => {
     withdraw.checkEligibility();
+    founderClaim.checkEligibility();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -399,77 +417,182 @@ function FounderWithdrawSection({ campaignId }: { campaignId: number }) {
   }
 
   const summary = withdraw.getWithdrawalSummary();
+  const hasFounderShare = founderClaim.founderShare > BigInt(0);
 
-  // Goal reached - show withdrawal option
+  // Goal reached - show withdrawal option and founder token claim
   return (
-    <Card className="border-green-200 bg-green-50/50">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <Wallet className="h-5 w-5 text-green-500" />
-          <CardTitle className="text-base">Withdrawal Available</CardTitle>
-          <Badge variant="outline" className="text-green-600 border-green-300">
-            Funding Successful
-          </Badge>
-        </div>
-        <CardDescription>Goal reached - funds are ready for withdrawal</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {campaign.claimed ? (
-          <div className="text-sm text-green-700 dark:text-green-300">
-            Funds have already been withdrawn!
+    <div className="space-y-4">
+      {/* Fund Withdrawal Card */}
+      <Card className="border-green-200 bg-green-50/50">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-green-500" />
+            <CardTitle className="text-base">Withdrawal Available</CardTitle>
+            <Badge variant="outline" className="text-green-600 border-green-300">
+              Funding Successful
+            </Badge>
           </div>
-        ) : withdraw.canWithdraw && summary ? (
-          <>
-            <div className="rounded-lg bg-white p-4 border space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Total Raised</span>
-                <span className="font-medium">{summary.totalAmount} MNT</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  Platform Fee ({summary.platformFeePercent})
-                </span>
-                <span className="text-red-500">-{summary.platformFee} MNT</span>
-              </div>
-              <hr />
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Net Amount</span>
-                <span className="text-xl font-bold text-green-600">
-                  {summary.netAmount} MNT
-                </span>
-              </div>
+          <CardDescription>Goal reached - funds are ready for withdrawal</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {campaign.claimed ? (
+            <div className="text-sm text-green-700 dark:text-green-300">
+              Funds have already been withdrawn!
             </div>
-            <Button
-              className="w-full"
-              onClick={async () => {
-                const success = await withdraw.requestWithdrawal();
-                if (success) {
-                  toast.success('Funds withdrawn successfully!');
-                } else {
-                  toast.error(withdraw.error || 'Failed to withdraw funds');
-                }
-              }}
-              disabled={withdraw.isWithdrawing}
-            >
-              {withdraw.isWithdrawing ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin">⏳</span>
-                  Processing...
-                </span>
-              ) : (
-                <>
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Withdraw Funds
-                </>
-              )}
-            </Button>
-          </>
-        ) : (
-          <div className="text-sm text-muted-foreground">
-            {withdraw.error || 'Unable to verify withdrawal permission.'}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ) : withdraw.canWithdraw && summary ? (
+            <>
+              <div className="rounded-lg bg-white p-4 border space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total Raised</span>
+                  <span className="font-medium">{summary.totalAmount} MNT</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    Platform Fee ({summary.platformFeePercent})
+                  </span>
+                  <span className="text-red-500">-{summary.platformFee} MNT</span>
+                </div>
+                <hr />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Net Amount</span>
+                  <span className="text-xl font-bold text-green-600">
+                    {summary.netAmount} MNT
+                  </span>
+                </div>
+              </div>
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  const success = await withdraw.requestWithdrawal();
+                  if (success) {
+                    toast.success('Funds withdrawn successfully!');
+                  } else {
+                    toast.error(withdraw.error || 'Failed to withdraw funds');
+                  }
+                }}
+                disabled={withdraw.isWithdrawing}
+              >
+                {withdraw.isWithdrawing ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin">⏳</span>
+                    Processing...
+                  </span>
+                ) : (
+                  <>
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Withdraw Funds
+                  </>
+                )}
+              </Button>
+            </>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              {withdraw.error || 'Unable to verify withdrawal permission.'}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Founder Token Claim Card */}
+      {hasFounderShare && (
+        <Card className="border-purple-200 bg-purple-50/50">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-purple-500" />
+              <CardTitle className="text-base">Founder Tokens</CardTitle>
+              <Badge variant="outline" className="text-purple-600 border-purple-300">
+                {Number(founderClaim.campaign?.founderShareBps || 0) / 100}% Allocation
+              </Badge>
+            </div>
+            <CardDescription>
+              Claim your founder token allocation
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {founderClaim.hasClaimed ? (
+              <div className="space-y-3">
+                <div className="text-sm text-purple-700 dark:text-purple-300">
+                  {founderTokenAddedToWallet
+                    ? `${campaign.tokenSymbol} founder tokens are now visible in your wallet!`
+                    : `You have already claimed your ${campaign.tokenSymbol} founder tokens!`
+                  }
+                </div>
+                {!founderTokenAddedToWallet && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={async () => {
+                      const success = await addTokenToWallet(
+                        campaign.equityToken,
+                        campaign.tokenSymbol
+                      );
+                      if (success) {
+                        handleFounderTokenAdded();
+                        toast.success(`${campaign.tokenSymbol} added to wallet!`);
+                      } else {
+                        toast.error('Failed to add token to wallet');
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add {campaign.tokenSymbol} to Wallet
+                  </Button>
+                )}
+              </div>
+            ) : founderClaim.canClaim ? (
+              <>
+                <div className="rounded-lg bg-white p-4 border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Founder Token Amount</span>
+                    <span className="text-xl font-bold text-purple-600">
+                      {toEther(founderClaim.founderShare)} {campaign.tokenSymbol}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {Number(founderClaim.campaign?.founderShareBps || 0) / 100}% of total token supply
+                  </div>
+                </div>
+                <Button
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  onClick={async () => {
+                    const success = await founderClaim.claimFounderTokens();
+                    if (success) {
+                      toast.success('Founder tokens claimed successfully!');
+                      const added = await addTokenToWallet(
+                        campaign.equityToken,
+                        campaign.tokenSymbol
+                      );
+                      if (added) {
+                        handleFounderTokenAdded();
+                        toast.success(`${campaign.tokenSymbol} added to wallet!`);
+                      }
+                    } else {
+                      toast.error(founderClaim.error || 'Failed to claim founder tokens');
+                    }
+                  }}
+                  disabled={founderClaim.isClaiming}
+                >
+                  {founderClaim.isClaiming ? (
+                    <span className="flex items-center gap-2">
+                      <span className="animate-spin">⏳</span>
+                      Claiming...
+                    </span>
+                  ) : (
+                    <>
+                      <Coins className="w-4 h-4 mr-2" />
+                      Claim Founder Tokens
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                {founderClaim.error || 'Founder tokens will be available after the campaign ends successfully.'}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

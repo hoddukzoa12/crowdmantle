@@ -16,6 +16,7 @@ import {
   prepareRefund,
   prepareClaim,
   prepareClaimTokens,
+  prepareClaimFounderTokens,
   type CampaignData,
 } from '@/lib/contracts/escrow';
 
@@ -42,6 +43,16 @@ interface ClaimTokensState {
   canClaim: boolean;
   hasClaimed: boolean;
   pledgeAmount: bigint;
+  campaign: CampaignData | null;
+  error: string | null;
+}
+
+interface ClaimFounderTokensState {
+  isChecking: boolean;
+  isClaiming: boolean;
+  canClaim: boolean;
+  hasClaimed: boolean;
+  founderShare: bigint;
   campaign: CampaignData | null;
   error: string | null;
 }
@@ -356,6 +367,111 @@ export function useClaimTokens(campaignId: number) {
     ...state,
     checkEligibility,
     claimTokens,
+    formatAmount: (amount: bigint) => toEther(amount),
+  };
+}
+
+/**
+ * Hook to claim founder tokens after successful funding (for campaign creator)
+ */
+export function useClaimFounderTokens(campaignId: number) {
+  const account = useActiveAccount();
+  const { mutateAsync: sendTransaction } = useSendTransaction();
+  const [state, setState] = useState<ClaimFounderTokensState>({
+    isChecking: false,
+    isClaiming: false,
+    canClaim: false,
+    hasClaimed: false,
+    founderShare: BigInt(0),
+    campaign: null,
+    error: null,
+  });
+
+  const checkEligibility = useCallback(async () => {
+    if (!account?.address) {
+      setState((prev) => ({ ...prev, error: 'Please connect your wallet' }));
+      return;
+    }
+
+    setState((prev) => ({ ...prev, isChecking: true, error: null }));
+
+    try {
+      const [campaign, isSuccessful] = await Promise.all([
+        getCampaign(campaignId),
+        isCampaignSuccessful(campaignId),
+      ]);
+
+      if (!campaign) {
+        setState((prev) => ({
+          ...prev,
+          isChecking: false,
+          error: 'Campaign not found',
+        }));
+        return;
+      }
+
+      const isCreator = account.address.toLowerCase() === campaign.creator.toLowerCase();
+      const now = Date.now() / 1000;
+      const isEnded = now >= Number(campaign.endAt);
+      const hasFounderShare = campaign.founderShareBps > BigInt(0);
+      const alreadyClaimed = campaign.founderTokensClaimed;
+
+      // Calculate founder token amount
+      const totalTokens = campaign.pledged; // 1:1 with pledged amount
+      const founderTokens = (totalTokens * campaign.founderShareBps) / BigInt(10000);
+
+      // Can claim if: user is creator, campaign ended, goal reached, has founder share, not claimed yet
+      const canClaim = isCreator && isEnded && isSuccessful && hasFounderShare && !alreadyClaimed;
+
+      setState({
+        isChecking: false,
+        isClaiming: false,
+        canClaim,
+        hasClaimed: alreadyClaimed,
+        founderShare: founderTokens,
+        campaign,
+        error: isCreator ? null : 'Only the campaign creator can claim founder tokens',
+      });
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        isChecking: false,
+        error: error instanceof Error ? error.message : 'Failed to check eligibility',
+      }));
+    }
+  }, [account?.address, campaignId]);
+
+  const claimFounderTokens = useCallback(async () => {
+    if (!state.canClaim) return false;
+
+    setState((prev) => ({ ...prev, isClaiming: true, error: null }));
+
+    try {
+      const tx = prepareClaimFounderTokens(campaignId);
+      await sendTransaction(tx);
+
+      setState((prev) => ({
+        ...prev,
+        isClaiming: false,
+        canClaim: false,
+        hasClaimed: true,
+      }));
+
+      return true;
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        isClaiming: false,
+        error: error instanceof Error ? error.message : 'Founder token claim failed',
+      }));
+      return false;
+    }
+  }, [campaignId, sendTransaction, state.canClaim]);
+
+  return {
+    ...state,
+    checkEligibility,
+    claimFounderTokens,
     formatAmount: (amount: bigint) => toEther(amount),
   };
 }
