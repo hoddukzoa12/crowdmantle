@@ -428,10 +428,10 @@ npm run test
 
 | Phase | Timeline | Features |
 |-------|----------|----------|
-| **Core Enhancement** | Q1 2025 | Mainnet deployment, Stablecoin support (USDT/USDC), Project whitepaper |
-| **Compliance & Trust** | Q2 2025 | KYC integration, Creator verification, Accredited investor tier |
-| **Trading Ecosystem** | Q3-Q4 2025 | Secondary market for tokens, Bybit partnership, xStock listing |
-| **Scale & Expand** | 2026 | Cross-chain support, Mobile app, Platform DAO |
+| **Core Enhancement** | Q1 2026 | Mainnet deployment, Stablecoin support (USDT/USDC), Project whitepaper |
+| **Compliance & Trust** | Q2 2026 | KYC integration, Creator verification, Accredited investor tier |
+| **Trading Ecosystem** | Q3-Q4 2026 | Secondary market for tokens, Bybit partnership, xStock listing |
+| **Scale & Expand** | 2027 | Cross-chain support, Mobile app, Platform DAO |
 
 ### Revenue Model
 
