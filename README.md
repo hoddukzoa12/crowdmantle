@@ -17,12 +17,15 @@
 
 ## Problem Statement
 
+Global crowdfunding volume is expanding, but many campaigns still fail to meet backer expectations due to trust and execution risks [[Crowdfunding Statistics 2026](https://absrbd.com/post/crowdfunding-statistics)].
+
 Traditional crowdfunding platforms suffer from a critical issue: **once a campaign succeeds, creators receive 100% of funds immediately**, leaving investors with no leverage to ensure project delivery.
 
 **CrowdMantle solves this** by implementing milestone-based fund release with on-chain governance, ensuring:
 - Creators must deliver promised milestones to access funds
 - Investors retain voting power throughout the project lifecycle
 - Transparent, trustless fund management via smart contracts
+
 
 ---
 
