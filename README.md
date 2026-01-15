@@ -446,6 +446,8 @@ npm run test
 | Name | Role | Contact |
 |------|------|---------|
 | **hoddukzoa** | Full-stack Developer | [GitHub](https://github.com/hoddukzoa12) |
+| **Drakos** | Project Manager | [GitHub](https://github.com/superjin1218) |
+
 
 ---
 
